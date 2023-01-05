@@ -5,6 +5,7 @@ import * as github from '@actions/github';
 import * as fs from 'fs';
 import * as path from 'path';
 import nodeFetch from 'node-fetch';
+import { HttpError } from 'http-errors';
 
 interface ExecResult {
   err?: Error | undefined;
@@ -96,7 +97,11 @@ async function getApps(): Promise<App[]> {
     });
     responseJson = await response.json();
   } catch (e) {
-    core.error(e);
+    if (e instanceof HttpError && e.message === 'Body is too long (maximum is 65536 characters)') {
+      core.error('Error: Body of HTTP request is too long.');
+      process.exit(1);
+      }
+      throw e;
   }
 
   return (responseJson.items as App[]).filter(app => {
@@ -238,6 +243,7 @@ async function run(): Promise<void> {
   });
   await postDiffComment(diffs);
   const diffsWithErrors = diffs.filter(d => d.error);
+  // handle this error case UnhandledPromiseRejectionWarning: HttpError: Validation Failed: {"resource":"IssueComment","code":"unprocessable","field":"data","message":"Body is too long (maximum is 65536 characters)"}
   if (diffsWithErrors.length) {
     core.setFailed(`ArgoCD diff failed: Encountered ${diffsWithErrors.length} errors`);
   }
