@@ -1843,7 +1843,7 @@ _Updated at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })} 
             owner,
             repo
         });
-        const existingComment = commentsResponse.data.find(d => d.body.includes('ArgoCD Diff for ' + ARGOCD_ENV));
+        const existingComment = commentsResponse.data.find(d => d.body.includes(`ArgoCD Diff for ${ARGOCD_ENV}`));
         // Existing comments should be updated even if there are no changes this round in order to indicate that
         if (existingComment) {
             octokit.rest.issues.updateComment({
@@ -1897,7 +1897,7 @@ function run() {
                     diffs.push({
                         app,
                         diff: '',
-                        error: res
+                        error: e
                     });
                 }
             }
