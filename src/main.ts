@@ -243,7 +243,6 @@ async function run(): Promise<void> {
   });
   await postDiffComment(diffs);
   const diffsWithErrors = diffs.filter(d => d.error);
-  // handle this error case UnhandledPromiseRejectionWarning: HttpError: Validation Failed: {"resource":"IssueComment","code":"unprocessable","field":"data","message":"Body is too long (maximum is 65536 characters)"}
   if (diffsWithErrors.length) {
     core.setFailed(`ArgoCD diff failed: Encountered ${diffsWithErrors.length} errors`);
   }
