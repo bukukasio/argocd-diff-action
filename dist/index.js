@@ -1781,7 +1781,7 @@ function getApps() {
             if (e instanceof http_errors_1.HttpError && e.message === 'Body is too long (maximum is 65536 characters)') {
                 core.error('Error: Body of HTTP request is too long.');
                 // comment on pull request with step logs details
-                const logURL = "https://github.com/" + github.context.repo.owner + "/" + github.context.repo.repo + "/actions/runs/" + github.context.runId;
+                const logURL = `https://github.com/${github.context.repo.owner}/${github.context.repo.repo}/actions/runs/${github.context.runId}`;
                 const { owner, repo } = github.context.repo;
                 yield octokit.rest.issues.createComment({
                     issue_number: github.context.issue.number,
