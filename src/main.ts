@@ -236,7 +236,7 @@ async function run(): Promise<void> {
         diffs.push({
           app,
           diff: '',
-          error: e
+          error: res
         });
       }
     }

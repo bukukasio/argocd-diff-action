@@ -1897,7 +1897,7 @@ function run() {
                     diffs.push({
                         app,
                         diff: '',
-                        error: e
+                        error: res
                     });
                 }
             }
