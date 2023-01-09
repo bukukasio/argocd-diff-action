@@ -97,8 +97,7 @@ async function getApps(): Promise<App[]> {
     });
     responseJson = await response.json();
   } catch (e) {
-    if (e instanceof HttpError && e.message === 'kustomize build tokko-applications/logistics/overlays/development/ --load-restrictor LoadRestrictionsNone --enable-helm --enable-alpha-plugins') {
-      core.error('Error: Body of HTTP request is too long.');
+    core.error('Error: Body of HTTP request is too long.');
       const { owner, repo } = github.context.repo;
       const errorMessage = `**Error:** Body of HTTP request is too long in ${ARGOCD_ENV} diff. Please check the details of your GitHub Actions workflow.`
       octokit.rest.issues.createComment({
@@ -107,8 +106,6 @@ async function getApps(): Promise<App[]> {
         repo,
         body: errorMessage
       });
-      process.exit(1);
-      }
       throw e;
   }
   return (responseJson.items as App[]).filter(app => {
