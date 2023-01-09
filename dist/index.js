@@ -1781,7 +1781,7 @@ function getApps() {
             if (e instanceof http_errors_1.HttpError && e.message === 'Body is too long (maximum is 65536 characters)') {
                 core.error('Error: Body of HTTP request is too long.');
                 const { owner, repo } = github.context.repo;
-                yield octokit.rest.issues.createComment({
+                octokit.rest.issues.createComment({
                     issue_number: github.context.issue.number,
                     owner,
                     repo,
@@ -1835,7 +1835,7 @@ ${diff}
 ---
 `);
         const output = scrubSecrets(`
-## ArgoCD Difff for ${ARGOCD_ENV} commit [\`${shortCommitSha}\`](${commitLink})
+## ArgoCD Diff for ${ARGOCD_ENV} commit [\`${shortCommitSha}\`](${commitLink})
 _Updated at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })} IST_
   ${diffOutput.join('\n')}
 
