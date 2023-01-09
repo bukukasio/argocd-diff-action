@@ -85,6 +85,7 @@ async function setupArgoCDCommand(): Promise<(params: string) => Promise<ExecRes
     );
 }
 
+const bodyTooLong = false;
 async function getApps(): Promise<App[]> {
   const url = `https://${ARGOCD_SERVER_URL}/api/v1/applications?fields=items.metadata.name,items.spec.source.path,items.spec.source.repoURL,items.spec.source.targetRevision,items.spec.source.helm,items.spec.source.kustomize,items.status.sync.status`;
   core.info(`Fetching apps from: ${url}`);
@@ -99,13 +100,7 @@ async function getApps(): Promise<App[]> {
   } catch (e) {
     if (e instanceof HttpError && e.message === 'Body is too long (maximum is 65536 characters)') {
       core.error('Error: Body of HTTP request is too long.');
-      const { owner, repo } = github.context.repo;
-      octokit.rest.issues.createComment({
-        issue_number: github.context.issue.number,
-        owner,
-        repo,
-        body: `Error: Body of HTTP request is too long. Please check the details of your GitHub Actions workflow.`
-      });
+      const bodyTooLong = true;
       process.exit(1);
       }
       throw e;
@@ -117,6 +112,17 @@ async function getApps(): Promise<App[]> {
         `${github.context.repo.owner}/${github.context.repo.repo}`
       ) && (app.spec.source.targetRevision === 'master' || app.spec.source.targetRevision === 'main')
     );
+  });
+}
+
+// If Body is too long error occurs, create a comment on the PR
+if (bodyTooLong) {
+  const { owner, repo } = github.context.repo;
+  octokit.rest.issues.createComment({
+    issue_number: github.context.issue.number,
+    owner,
+    repo,
+    body: `Error: Body of HTTP request is too long. Please check the details of your GitHub Actions workflow.`
   });
 }
 

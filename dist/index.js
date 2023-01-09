@@ -1764,6 +1764,7 @@ function setupArgoCDCommand() {
         });
     });
 }
+const bodyTooLong = false;
 function getApps() {
     return __awaiter(this, void 0, void 0, function* () {
         const url = `https://${ARGOCD_SERVER_URL}/api/v1/applications?fields=items.metadata.name,items.spec.source.path,items.spec.source.repoURL,items.spec.source.targetRevision,items.spec.source.helm,items.spec.source.kustomize,items.status.sync.status`;
@@ -1780,13 +1781,7 @@ function getApps() {
         catch (e) {
             if (e instanceof http_errors_1.HttpError && e.message === 'Body is too long (maximum is 65536 characters)') {
                 core.error('Error: Body of HTTP request is too long.');
-                const { owner, repo } = github.context.repo;
-                octokit.rest.issues.createComment({
-                    issue_number: github.context.issue.number,
-                    owner,
-                    repo,
-                    body: `Error: Body of HTTP request is too long. Please check the details of your GitHub Actions workflow.`
-                });
+                const bodyTooLong = true;
                 process.exit(1);
             }
             throw e;
@@ -1794,6 +1789,16 @@ function getApps() {
         return responseJson.items.filter(app => {
             return (app.spec.source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`) && (app.spec.source.targetRevision === 'master' || app.spec.source.targetRevision === 'main'));
         });
+    });
+}
+// If Body is too long error occurs, create a comment on the PR
+if (bodyTooLong) {
+    const { owner, repo } = github.context.repo;
+    octokit.rest.issues.createComment({
+        issue_number: github.context.issue.number,
+        owner,
+        repo,
+        body: `Error: Body of HTTP request is too long. Please check the details of your GitHub Actions workflow.`
     });
 }
 function postDiffComment(diffs) {
