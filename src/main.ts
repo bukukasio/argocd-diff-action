@@ -116,15 +116,13 @@ async function getApps(): Promise<App[]> {
 }
 
 // If Body is too long error occurs, create a comment on the PR
-if (bodyTooLong) {
-  const { owner, repo } = github.context.repo;
-  octokit.rest.issues.createComment({
-    issue_number: github.context.issue.number,
-    owner,
-    repo,
-    body: `Error: Body of HTTP request is too long. Please check the details of your GitHub Actions workflow.`
-  });
-}
+const { owner, repo } = github.context.repo;
+octokit.rest.issues.createComment({
+  issue_number: github.context.issue.number,
+  owner,
+  repo,
+  body: `Error: Body of HTTP request is too long. Please check the details of your GitHub Actions workflow.`
+});
 
 interface Diff {
   app: App;
