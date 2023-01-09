@@ -5,6 +5,7 @@ import * as github from '@actions/github';
 import * as fs from 'fs';
 import * as path from 'path';
 import nodeFetch from 'node-fetch';
+import { HttpError } from 'http-errors';
 
 interface ExecResult {
   err?: Error | undefined;
@@ -96,9 +97,20 @@ async function getApps(): Promise<App[]> {
     });
     responseJson = await response.json();
   } catch (e) {
-    core.error(e);
+    if (e instanceof HttpError && e.message === 'Body is too long (maximum is 65536 characters)') {
+      core.error('Error: Body of HTTP request is too long.');
+      const { owner, repo } = github.context.repo;
+      const errorMessage = `**Error:** Body of HTTP request is too long in ${ARGOCD_ENV} diff. Please check the details of your GitHub Actions workflow.`
+      octokit.rest.issues.createComment({
+        issue_number: github.context.issue.number,
+        owner,
+        repo,
+        body: errorMessage
+      });
+      process.exit(1);
+      }
+      throw e;
   }
-
   return (responseJson.items as App[]).filter(app => {
     return (
       app.spec.source.repoURL.includes(
@@ -121,8 +133,8 @@ async function postDiffComment(diffs: Diff[]): Promise<void> {
   const shortCommitSha = String(sha).substr(0, 7);
 
   const diffOutput = diffs.map(
-    ({ app, diff, error }) => `   
-App: [\`${app.metadata.name}\`](https://${ARGOCD_SERVER_URL}/applications/${app.metadata.name}) 
+    ({ app, diff, error }) => `
+App: [\`${app.metadata.name}\`](https://${ARGOCD_SERVER_URL}/applications/${app.metadata.name})
 YAML generation: ${error ? ' Error 🛑' : 'Success 🟢'}
 App sync status: ${app.status.sync.status === 'Synced' ? 'Synced ✅' : 'Out of Sync ⚠️ '}
 ${
@@ -176,7 +188,7 @@ _Updated at ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })} 
     repo
   });
 
-  const existingComment = commentsResponse.data.find(d => d.body!.includes('ArgoCD Diff for '+ARGOCD_ENV));
+  const existingComment = commentsResponse.data.find(d => typeof d.body === 'string' && d.body.includes(`ArgoCD Diff for ${ARGOCD_ENV}`));
 
   // Existing comments should be updated even if there are no changes this round in order to indicate that
   if (existingComment) {
