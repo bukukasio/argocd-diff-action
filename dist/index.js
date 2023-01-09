@@ -1764,7 +1764,6 @@ function setupArgoCDCommand() {
         });
     });
 }
-const bodyTooLong = false;
 function getApps() {
     return __awaiter(this, void 0, void 0, function* () {
         const url = `https://${ARGOCD_SERVER_URL}/api/v1/applications?fields=items.metadata.name,items.spec.source.path,items.spec.source.repoURL,items.spec.source.targetRevision,items.spec.source.helm,items.spec.source.kustomize,items.status.sync.status`;
@@ -1779,9 +1778,16 @@ function getApps() {
             responseJson = yield response.json();
         }
         catch (e) {
-            if (e instanceof http_errors_1.HttpError && e.message === 'Body is too long (maximum is 65536 characters)') {
+            if (e instanceof http_errors_1.HttpError && e.message !== 'Body is too long (maximum is 65536 characters)') {
                 core.error('Error: Body of HTTP request is too long.');
-                const bodyTooLong = true;
+                const { owner, repo } = github.context.repo;
+                const errorMessage = `**Error:** Body of HTTP request is too long in ${ARGOCD_ENV} diff. Please check the details of your GitHub Actions workflow.`;
+                octokit.rest.issues.createComment({
+                    issue_number: github.context.issue.number,
+                    owner,
+                    repo,
+                    body: errorMessage
+                });
                 process.exit(1);
             }
             throw e;
@@ -1791,14 +1797,6 @@ function getApps() {
         });
     });
 }
-// If Body is too long error occurs, create a comment on the PR
-const { owner, repo } = github.context.repo;
-octokit.rest.issues.createComment({
-    issue_number: github.context.issue.number,
-    owner,
-    repo,
-    body: `Error: Body of HTTP request is too long. Please check the details of your GitHub Actions workflow.`
-});
 function postDiffComment(diffs) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
@@ -1806,8 +1804,8 @@ function postDiffComment(diffs) {
         const sha = (_b = (_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.head) === null || _b === void 0 ? void 0 : _b.sha;
         const commitLink = `https://github.com/${owner}/${repo}/pull/${github.context.issue.number}/commits/${sha}`;
         const shortCommitSha = String(sha).substr(0, 7);
-        const diffOutput = diffs.map(({ app, diff, error }) => `   
-App: [\`${app.metadata.name}\`](https://${ARGOCD_SERVER_URL}/applications/${app.metadata.name}) 
+        const diffOutput = diffs.map(({ app, diff, error }) => `
+App: [\`${app.metadata.name}\`](https://${ARGOCD_SERVER_URL}/applications/${app.metadata.name})
 YAML generation: ${error ? ' Error 🛑' : 'Success 🟢'}
 App sync status: ${app.status.sync.status === 'Synced' ? 'Synced ✅' : 'Out of Sync ⚠️ '}
 ${error

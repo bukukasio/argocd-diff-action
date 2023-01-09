@@ -85,7 +85,6 @@ async function setupArgoCDCommand(): Promise<(params: string) => Promise<ExecRes
     );
 }
 
-const bodyTooLong = false;
 async function getApps(): Promise<App[]> {
   const url = `https://${ARGOCD_SERVER_URL}/api/v1/applications?fields=items.metadata.name,items.spec.source.path,items.spec.source.repoURL,items.spec.source.targetRevision,items.spec.source.helm,items.spec.source.kustomize,items.status.sync.status`;
   core.info(`Fetching apps from: ${url}`);
@@ -98,14 +97,20 @@ async function getApps(): Promise<App[]> {
     });
     responseJson = await response.json();
   } catch (e) {
-    if (e instanceof HttpError && e.message === 'Body is too long (maximum is 65536 characters)') {
+    if (e instanceof HttpError && e.message !== 'Body is too long (maximum is 65536 characters)') {
       core.error('Error: Body of HTTP request is too long.');
-      const bodyTooLong = true;
+      const { owner, repo } = github.context.repo;
+      const errorMessage = `**Error:** Body of HTTP request is too long in ${ARGOCD_ENV} diff. Please check the details of your GitHub Actions workflow.`
+      octokit.rest.issues.createComment({
+        issue_number: github.context.issue.number,
+        owner,
+        repo,
+        body: errorMessage
+      });
       process.exit(1);
       }
       throw e;
   }
-
   return (responseJson.items as App[]).filter(app => {
     return (
       app.spec.source.repoURL.includes(
@@ -114,15 +119,6 @@ async function getApps(): Promise<App[]> {
     );
   });
 }
-
-// If Body is too long error occurs, create a comment on the PR
-const { owner, repo } = github.context.repo;
-octokit.rest.issues.createComment({
-  issue_number: github.context.issue.number,
-  owner,
-  repo,
-  body: `Error: Body of HTTP request is too long. Please check the details of your GitHub Actions workflow.`
-});
 
 interface Diff {
   app: App;
@@ -137,8 +133,8 @@ async function postDiffComment(diffs: Diff[]): Promise<void> {
   const shortCommitSha = String(sha).substr(0, 7);
 
   const diffOutput = diffs.map(
-    ({ app, diff, error }) => `   
-App: [\`${app.metadata.name}\`](https://${ARGOCD_SERVER_URL}/applications/${app.metadata.name}) 
+    ({ app, diff, error }) => `
+App: [\`${app.metadata.name}\`](https://${ARGOCD_SERVER_URL}/applications/${app.metadata.name})
 YAML generation: ${error ? ' Error 🛑' : 'Success 🟢'}
 App sync status: ${app.status.sync.status === 'Synced' ? 'Synced ✅' : 'Out of Sync ⚠️ '}
 ${
