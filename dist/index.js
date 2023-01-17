@@ -1766,6 +1766,16 @@ function setupArgoCDCommand() {
 }
 function getApps() {
     return __awaiter(this, void 0, void 0, function* () {
+        let changedPaths = [];
+        // Check if the workflow is triggered by a pull request event
+        if (!github.context.payload.pull_request) {
+            core.error('Error: This workflow should be triggered by a pull request event.');
+            return [];
+        }
+        // Get the list of changed files using the GitHub API
+        const changedFiles = github.context.payload.pull_request.changed_files;
+        // Map the list of changed files to a list of changed paths
+        changedPaths = changedFiles.map((file) => file.filename);
         const url = `https://${ARGOCD_SERVER_URL}/api/v1/applications?fields=items.metadata.name,items.spec.source.path,items.spec.source.repoURL,items.spec.source.targetRevision,items.spec.source.helm,items.spec.source.kustomize,items.status.sync.status`;
         core.info(`Fetching apps from: ${url}`);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1792,9 +1802,16 @@ function getApps() {
             }
             throw e;
         }
-        return responseJson.items.filter(app => {
+        const apps = responseJson.items.filter(app => {
             return (app.spec.source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`) && (app.spec.source.targetRevision === 'master' || app.spec.source.targetRevision === 'main'));
         });
+        const pathToAppName = {};
+        apps.forEach(app => {
+            const pathToAppName = {};
+            pathToAppName[app.spec.source.path] = app.metadata.name;
+        });
+        const changedAppNames = changedPaths.map(path => pathToAppName[path]);
+        return apps.filter(app => changedAppNames.includes(app.metadata.name));
     });
 }
 function postDiffComment(diffs) {
