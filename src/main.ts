@@ -85,17 +85,17 @@ async function setupArgoCDCommand(): Promise<(params: string) => Promise<ExecRes
     );
 }
 
+async function getPullRequestFiles(owner: string, repo: string, pullNumber: number): Promise<string[]> {
+  const url = `https://api.github.com/repos/${github.context.repo.owner}/${github.context.repo.repo}/pulls/${pullNumber}/files`;
+  const response = await nodeFetch(url, {
+    method: 'GET',
+    headers: { 'Authorization': `Token ${githubToken}` }
+  });
+  const responseJson = await response.json();
+  return responseJson.map((file: { filename: any; }) => file.filename);
+}
+
 async function getApps(): Promise<App[]> {
-  let changedPaths: string[] = []
-  // Check if the workflow is triggered by a pull request event
-  if (!github.context.payload.pull_request) {
-    core.error('Error: This workflow should be triggered by a pull request event.');
-    return [];
-  }
-  // Get the list of changed files using the GitHub API
-  const changedFiles = github.context.payload.pull_request.changed_files as Array<{filename:string}>;
-  // Map the list of changed files to a list of changed paths
-  changedPaths = changedFiles.map((file) => file.filename);
   const url = `https://${ARGOCD_SERVER_URL}/api/v1/applications?fields=items.metadata.name,items.spec.source.path,items.spec.source.repoURL,items.spec.source.targetRevision,items.spec.source.helm,items.spec.source.kustomize,items.status.sync.status`;
   core.info(`Fetching apps from: ${url}`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -121,20 +121,15 @@ async function getApps(): Promise<App[]> {
       }
       throw e;
   }
-  const apps = (responseJson.items as App[]).filter(app => {
+  const pullNumber = core.getInput('pull-request-number');
+  const pullRequestFiles = await getPullRequestFiles(github.context.repo.owner, github.context.repo.repo, parseInt(pullNumber || '0'));
+  return (responseJson.items as App[]).filter(app => {
     return (
       app.spec.source.repoURL.includes(
         `${github.context.repo.owner}/${github.context.repo.repo}`
-      ) && (app.spec.source.targetRevision === 'master' || app.spec.source.targetRevision === 'main')
+      ) && (app.spec.source.targetRevision === 'master' || app.spec.source.targetRevision === 'main') && pullRequestFiles.some(file => app.spec.source.path.includes(file))
     );
   });
-  const pathToAppName: Record<string, string> = {};
-  apps.forEach(app => {
-    const pathToAppName: {[key: string]: string} = {};
-    pathToAppName[app.spec.source.path] = app.metadata.name;
-  });
-  const changedAppNames = changedPaths.map(path => pathToAppName[path]);
-  return apps.filter(app => changedAppNames.includes(app.metadata.name));
 }
 
 interface Diff {
