@@ -1766,7 +1766,7 @@ function setupArgoCDCommand() {
 }
 function getPullRequestFiles(owner, repo, pullNumber) {
     return __awaiter(this, void 0, void 0, function* () {
-        const url = `https://api.github.com/repos/${github.context.repo.owner}/${github.context.repo.repo}/pulls/${pullNumber}/files`;
+        const url = `https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/files`;
         const response = yield node_fetch_1.default(url, {
             method: 'GET',
             headers: { 'Authorization': `Token ${githubToken}` }
@@ -1804,7 +1804,9 @@ function getApps() {
             throw e;
         }
         const pullNumber = core.getInput('pull-request-number');
-        const pullRequestFiles = yield getPullRequestFiles(github.context.repo.owner, github.context.repo.repo, parseInt(pullNumber || '0'));
+        const owner = github.context.repo.owner;
+        const repo = github.context.repo.repo;
+        const pullRequestFiles = yield getPullRequestFiles(owner, repo, parseInt(pullNumber));
         return responseJson.items.filter(app => {
             return (app.spec.source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`) && (app.spec.source.targetRevision === 'master' || app.spec.source.targetRevision === 'main') && pullRequestFiles.some(file => app.spec.source.path.includes(file)));
         });

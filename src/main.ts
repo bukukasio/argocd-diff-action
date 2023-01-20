@@ -86,7 +86,7 @@ async function setupArgoCDCommand(): Promise<(params: string) => Promise<ExecRes
 }
 
 async function getPullRequestFiles(owner: string, repo: string, pullNumber: number): Promise<string[]> {
-  const url = `https://api.github.com/repos/${github.context.repo.owner}/${github.context.repo.repo}/pulls/${pullNumber}/files`;
+  const url = `https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/files`;
   const response = await nodeFetch(url, {
     method: 'GET',
     headers: { 'Authorization': `Token ${githubToken}` }
@@ -122,7 +122,9 @@ async function getApps(): Promise<App[]> {
       throw e;
   }
   const pullNumber = core.getInput('pull-request-number');
-  const pullRequestFiles = await getPullRequestFiles(github.context.repo.owner, github.context.repo.repo, parseInt(pullNumber || '0'));
+  const owner = github.context.repo.owner;
+  const repo = github.context.repo.repo;
+  const pullRequestFiles = await getPullRequestFiles(owner, repo, parseInt(pullNumber));
   return (responseJson.items as App[]).filter(app => {
     return (
       app.spec.source.repoURL.includes(
