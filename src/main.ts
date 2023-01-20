@@ -85,23 +85,42 @@ async function setupArgoCDCommand(): Promise<(params: string) => Promise<ExecRes
     );
 }
 
-// Function to get the list of files changed in a pull request
+// Function to get the files changed in a pull request
 async function getPullRequestFiles(owner: string, repo: string, pullNumber: number): Promise<string[]> {
   const url = `https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/files`;
   const headers = {
-      Accept: "application/vnd.github+json",
-      Authorization: "Bearer " + githubToken,
-      "X-GitHub-Api-Version": "2022-11-28",
+    Accept: "application/vnd.github+json",
+    Authorization: "Bearer " + githubToken,
+    "X-GitHub-Api-Version": "2022-11-28",
   };
   try {
-      const response = await nodeFetch(url, {headers});
+    const response = await nodeFetch(url, { headers });
+    const data = await response.json();
+    const dataArray = Array.isArray(data) ? data : Array.from(data);
+    const filenames = [];
+    for (const file of dataArray) {
+      filenames.push(path.join(path.dirname(file.filename), "/"));
+    }
+    return filenames;
+  } catch (err) {
+    console.error(err);
+  }
+  return [];
+}
+
+// Function to get the paths of the applications in ArgoCD
+async function fetchAppsPath(): Promise<string[]> {
+  try {
+      const headers = {
+          Authorization: `Bearer ${ARGOCD_TOKEN}`
+      };
+      const response = await nodeFetch(`https://${ARGOCD_SERVER_URL}/api/v1/applications`, {headers});
       const data = await response.json();
-      const dataArray = Array.isArray(data) ? data : Array.from(data);
-      const filenames = [];
-      for (const file of dataArray) {
-        filenames.push(path.join(path.dirname(file.filename), "/"));
+      let items = [];
+      for (const item of data.items) {
+          items.push(item.spec.source.path);
       }
-      return filenames;
+      return items;
   } catch (err) {
       console.error(err);
   }
@@ -134,15 +153,27 @@ async function getApps(): Promise<App[]> {
       }
       throw e;
   }
+  // Get the pull request number from the context
   const pullNumber = core.getInput('pull-request-number');
-  const owner = github.context.repo.owner;
-  const repo = github.context.repo.repo;
-  const pullRequestFiles = await getPullRequestFiles(owner, repo, parseInt(pullNumber));
+  // Get the files changed in the pull request
+  const pullRequestFiles = await getPullRequestFiles(github.context.repo.owner, github.context.repo.repo, parseInt(pullNumber));
+  // Get the paths of the applications in ArgoCD
+  const appsPath = await fetchAppsPath();
+  // Loop through the files changed in the pull request and check if they are in the path of any of the applications in ArgoCD
+  // Add the application to the affectedApps array
+  let affectedApps: string[] = [];
+  for (const filename of pullRequestFiles) {
+      for (const appPath of appsPath) {
+          if (filename.startsWith(appPath)) {
+              affectedApps.push(appPath);
+          }
+      }
+  }
   return (responseJson.items as App[]).filter(app => {
     return (
       app.spec.source.repoURL.includes(
         `${github.context.repo.owner}/${github.context.repo.repo}`
-      ) && (app.spec.source.targetRevision === 'master' || app.spec.source.targetRevision === 'main')
+      ) && (app.spec.source.targetRevision === 'master' || app.spec.source.targetRevision === 'main') && affectedApps.includes(app.spec.source.path)
     );
   });
 }
