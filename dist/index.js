@@ -1822,7 +1822,7 @@ function getApps() {
         const repo = github.context.repo.repo;
         const pullRequestFiles = yield getPullRequestFiles(owner, repo, parseInt(pullNumber));
         return responseJson.items.filter(app => {
-            return (app.spec.source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`) && (app.spec.source.targetRevision === 'master' || app.spec.source.targetRevision === 'main') && pullRequestFiles.some(file => app.spec.source.path.startsWith(file)));
+            return (app.spec.source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`) && (app.spec.source.targetRevision === 'master' || app.spec.source.targetRevision === 'main'));
         });
     });
 }
