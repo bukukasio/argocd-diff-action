@@ -96,7 +96,10 @@ async function getPullRequestFiles(owner: string, repo: string, pullNumber: numb
   try {
       const response = await nodeFetch(url, {headers});
       const data = await response.json();
-      const filenames = data.map((file: { filename: any; }) => path.join(path.dirname(file.filename), '/'));
+      const filenames = [];
+      for (const file of data) {
+        filenames.push(path.join(path.dirname(file.filename), "/"));
+      }
       return filenames;
   } catch (err) {
       console.error(err);
