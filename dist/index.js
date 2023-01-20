@@ -1764,15 +1764,25 @@ function setupArgoCDCommand() {
         });
     });
 }
+// Function to get the list of files changed in a pull request
 function getPullRequestFiles(owner, repo, pullNumber) {
     return __awaiter(this, void 0, void 0, function* () {
         const url = `https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/files`;
-        const response = yield node_fetch_1.default(url, {
-            method: 'GET',
-            headers: { 'Authorization': `Token ${githubToken}` }
-        });
-        const responseJson = yield response.json();
-        return responseJson.map((file) => file.filename);
+        const headers = {
+            Accept: "application/vnd.github+json",
+            Authorization: "Bearer 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",
+            "X-GitHub-Api-Version": "2022-11-28",
+        };
+        try {
+            const response = yield node_fetch_1.default(url, { headers });
+            const data = yield response.json();
+            const filenames = data.map((file) => path.join(path.dirname(file.filename), '/'));
+            return filenames;
+        }
+        catch (err) {
+            console.error(err);
+        }
+        return [];
     });
 }
 function getApps() {
@@ -1808,7 +1818,7 @@ function getApps() {
         const repo = github.context.repo.repo;
         const pullRequestFiles = yield getPullRequestFiles(owner, repo, parseInt(pullNumber));
         return responseJson.items.filter(app => {
-            return (app.spec.source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`) && (app.spec.source.targetRevision === 'master' || app.spec.source.targetRevision === 'main') && pullRequestFiles.some(file => app.spec.source.path.includes(file)));
+            return (app.spec.source.repoURL.includes(`${github.context.repo.owner}/${github.context.repo.repo}`) && (app.spec.source.targetRevision === 'master' || app.spec.source.targetRevision === 'main') && pullRequestFiles.some(file => app.spec.source.path.startsWith(file)));
         });
     });
 }

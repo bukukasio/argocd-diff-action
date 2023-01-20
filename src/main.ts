@@ -85,14 +85,23 @@ async function setupArgoCDCommand(): Promise<(params: string) => Promise<ExecRes
     );
 }
 
+// Function to get the list of files changed in a pull request
 async function getPullRequestFiles(owner: string, repo: string, pullNumber: number): Promise<string[]> {
   const url = `https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/files`;
-  const response = await nodeFetch(url, {
-    method: 'GET',
-    headers: { 'Authorization': `Token ${githubToken}` }
-  });
-  const responseJson = await response.json();
-  return responseJson.map((file: { filename: any; }) => file.filename);
+  const headers = {
+      Accept: "application/vnd.github+json",
+      Authorization: "Bearer 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",
+      "X-GitHub-Api-Version": "2022-11-28",
+  };
+  try {
+      const response = await nodeFetch(url, {headers});
+      const data = await response.json();
+      const filenames = data.map((file: { filename: any; }) => path.join(path.dirname(file.filename), '/'));
+      return filenames;
+  } catch (err) {
+      console.error(err);
+  }
+  return [];
 }
 
 async function getApps(): Promise<App[]> {
@@ -129,7 +138,7 @@ async function getApps(): Promise<App[]> {
     return (
       app.spec.source.repoURL.includes(
         `${github.context.repo.owner}/${github.context.repo.repo}`
-      ) && (app.spec.source.targetRevision === 'master' || app.spec.source.targetRevision === 'main') && pullRequestFiles.some(file => app.spec.source.path.includes(file))
+      ) && (app.spec.source.targetRevision === 'master' || app.spec.source.targetRevision === 'main') && pullRequestFiles.some(file => app.spec.source.path.startsWith(file))
     );
   });
 }
