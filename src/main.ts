@@ -90,7 +90,7 @@ async function getPullRequestFiles(owner: string, repo: string, pullNumber: numb
   const url = `https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/files`;
   const headers = {
       Accept: "application/vnd.github+json",
-      Authorization: "Bearer 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",
+      Authorization: "Bearer " + githubToken,
       "X-GitHub-Api-Version": "2022-11-28",
   };
   try {
