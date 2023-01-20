@@ -1776,8 +1776,9 @@ function getPullRequestFiles(owner, repo, pullNumber) {
         try {
             const response = yield node_fetch_1.default(url, { headers });
             const data = yield response.json();
+            const dataArray = Array.isArray(data) ? data : Array.from(data);
             const filenames = [];
-            for (const file of data) {
+            for (const file of dataArray) {
                 filenames.push(path.join(path.dirname(file.filename), "/"));
             }
             return filenames;
