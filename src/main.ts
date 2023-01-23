@@ -155,10 +155,13 @@ async function getApps(): Promise<App[]> {
   }
   // Get the pull request number from the context
   const pullNumber = core.getInput('pull-request-number');
+  core.info(`Pull request number: ${pullNumber}`);
   // Get the files changed in the pull request
   const pullRequestFiles = await getPullRequestFiles(github.context.repo.owner, github.context.repo.repo, parseInt(pullNumber));
+  core.info(`Pull request files: ${pullRequestFiles}`);
   // Get the paths of the applications in ArgoCD
   const appsPath = await fetchAppsPath();
+  core.info(`Apps path: ${appsPath}`);
   // Loop through the files changed in the pull request and check if they are in the path of any of the applications in ArgoCD
   // Add the application to the affectedApps array
   let affectedApps: string[] = [];
