@@ -1847,6 +1847,7 @@ function getApps() {
         // Loop through the files changed in the pull request and check if they are in the path of any of the applications in ArgoCD
         // Add the application to the affectedApps array
         let affectedApps = [];
+        core.info(`Affected apps: ${affectedApps}`);
         for (const filename of pullRequestFiles) {
             for (const appPath of appsPath) {
                 if (filename.startsWith(appPath)) {
