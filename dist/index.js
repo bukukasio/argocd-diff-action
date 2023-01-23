@@ -1945,6 +1945,10 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         const argocd = yield setupArgoCDCommand();
         const apps = yield getApps();
+        if (apps.length === 0) {
+            core.info('No apps found');
+            return;
+        }
         core.info(`Found apps: ${apps.map(a => a.metadata.name).join(', ')}`);
         const diffs = [];
         yield asyncForEach(apps, (app) => __awaiter(this, void 0, void 0, function* () {
