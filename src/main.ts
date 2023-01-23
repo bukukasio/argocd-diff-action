@@ -154,18 +154,14 @@ async function getApps(): Promise<App[]> {
       throw e;
   }
   // Get the pull request number from the context
-  const pullNumber = core.getInput('pull-request-number');
-  core.info(`Pull request number: ${pullNumber}`);
+  const pullNumber = "1393"
   // Get the files changed in the pull request
   const pullRequestFiles = await getPullRequestFiles(github.context.repo.owner, github.context.repo.repo, parseInt(pullNumber));
-  core.info(`Pull request files: ${pullRequestFiles}`);
   // Get the paths of the applications in ArgoCD
   const appsPath = await fetchAppsPath();
-  core.info(`Apps path: ${appsPath}`);
   // Loop through the files changed in the pull request and check if they are in the path of any of the applications in ArgoCD
   // Add the application to the affectedApps array
   let affectedApps: string[] = [];
-  core.info(`Affected apps: ${affectedApps}`);
   for (const filename of pullRequestFiles) {
       for (const appPath of appsPath) {
           if (filename.startsWith(appPath)) {
@@ -283,10 +279,6 @@ async function asyncForEach<T>(
 async function run(): Promise<void> {
   const argocd = await setupArgoCDCommand();
   const apps = await getApps();
-  if (apps.length === 0) {
-    core.info('No apps found');
-    return;
-  }
   core.info(`Found apps: ${apps.map(a => a.metadata.name).join(', ')}`);
 
   const diffs: Diff[] = [];
