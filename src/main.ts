@@ -71,14 +71,6 @@ function scrubSecrets(input: string): string {
 
 async function setupArgoCDCommand(): Promise<(params: string) => Promise<ExecResult>> {
   const argoBinaryPath = 'bin/argo';
-  await tc.downloadTool(
-    `https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-${ARCH}-amd64`,
-    argoBinaryPath
-  );
-  fs.chmodSync(path.join(argoBinaryPath), '755');
-
-  // core.addPath(argoBinaryPath);
-
   return async (params: string) =>
     execCommand(
       `${argoBinaryPath} ${params} --auth-token=${ARGOCD_TOKEN} --server=${ARGOCD_SERVER_URL} ${EXTRA_CLI_ARGS}`
