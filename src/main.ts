@@ -70,10 +70,9 @@ function scrubSecrets(input: string): string {
 }
 
 async function setupArgoCDCommand(): Promise<(params: string) => Promise<ExecResult>> {
-  const argoBinaryPath = 'bin/argo';
   return async (params: string) =>
     execCommand(
-      `${argoBinaryPath} ${params} --auth-token=${ARGOCD_TOKEN} --server=${ARGOCD_SERVER_URL} ${EXTRA_CLI_ARGS}`
+      `${params} --auth-token=${ARGOCD_TOKEN} --server=${ARGOCD_SERVER_URL} ${EXTRA_CLI_ARGS}`
     );
 }
 
