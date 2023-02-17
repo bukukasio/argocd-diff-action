@@ -699,7 +699,7 @@ function scrubSecrets(input) {
 function setupArgoCDCommand() {
     return __awaiter(this, void 0, void 0, function* () {
         return (params) => __awaiter(this, void 0, void 0, function* () {
-            return execCommand(`${params} --auth-token=${ARGOCD_TOKEN} --server=${ARGOCD_SERVER_URL} ${EXTRA_CLI_ARGS}`);
+            return execCommand(`argocd ${params} --auth-token=${ARGOCD_TOKEN} --server=${ARGOCD_SERVER_URL} ${EXTRA_CLI_ARGS}`);
         });
     });
 }
